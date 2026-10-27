@@ -1,3 +1,7 @@
+---
+last_mapped_commit: 4de1636fce380884c3ca89be5e27619dc1d60fc8
+last_mapped_at: 2026-10-27
+---
 # Testing Patterns
 
 **Analysis Date:** 2026-10-27
@@ -11,9 +15,13 @@
 - Not detected.
 
 **Run Commands:**
+
 ```bash
+
 # Not detected - no test scripts or Makefile present.
+
 # Go default (once source is added): go test ./...
+
 ```
 
 ## Test File Organization
@@ -25,6 +33,7 @@
 - Not detected. Go convention (when adopted): `*_test.go` files co-located with source in the same package.
 
 **Structure:**
+
 ```
 Not detected.
 ```
@@ -32,6 +41,7 @@ Not detected.
 ## Test Structure
 
 **Suite Organization:**
+
 ```go
 // Not detected - no existing tests to reference.
 ```
@@ -44,6 +54,7 @@ Not detected.
 **Framework:** Not detected.
 
 **Patterns:**
+
 ```go
 // Not detected.
 ```
@@ -57,6 +68,7 @@ Not detected.
 ## Fixtures and Factories
 
 **Test Data:**
+
 ```go
 // Not detected.
 ```
@@ -69,8 +81,11 @@ Not detected.
 **Requirements:** Not detected (no coverage thresholds configured).
 
 **View Coverage:**
+
 ```bash
+
 # Not detected. Go default: go test -cover ./...
+
 ```
 
 ## Test Types
@@ -87,11 +102,13 @@ Not detected.
 ## Common Patterns
 
 **Async Testing:**
+
 ```go
 // Not detected.
 ```
 
 **Error Testing:**
+
 ```go
 // Not detected.
 ```
