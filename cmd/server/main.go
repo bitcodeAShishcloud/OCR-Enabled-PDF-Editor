@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"ocrpdf/internal/api"
 	"ocrpdf/internal/ocr"
 )
 
@@ -98,9 +99,18 @@ func main() {
 		slog.Error("ocr backend init failed", "err", err)
 		os.Exit(1)
 	}
-	_ = engine
-
 	mux := newMux()
+
+	store := api.NewStore()
+	h := &api.Handler{
+		Store:          store,
+		Engine:         engine,
+		MaxUploadBytes: api.DefaultMaxUploadBytes,
+		MaxPages:       api.DefaultMaxPages,
+	}
+	mux.HandleFunc("POST /api/documents", h.Upload)
+	mux.HandleFunc("GET /api/documents/{id}/pages/{n}", h.GetPage)
+	mux.HandleFunc("DELETE /api/documents/{id}", h.DeleteDoc)
 
 	srv := &http.Server{
 		Addr:              fmt.Sprintf("0.0.0.0:%d", cfg.Port),
