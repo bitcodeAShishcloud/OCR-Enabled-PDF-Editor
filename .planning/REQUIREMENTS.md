@@ -15,10 +15,10 @@
 ### OCR
 
 - [x] **OCR-01**: OCR engine interface exposes `Recognize(imagePath) ([]Word, error)` with word text, confidence, and bounding box
-- [ ] **OCR-02**: CLI backend parses Tesseract TSV (level-5 rows) into words with text/conf/bbox
-- [ ] **OCR-03**: CLI backend locates tesseract via `TESSERACT_PATH` with Windows default
-- [ ] **OCR-04**: CLI backend sets `TESSDATA_PREFIX` if unset
-- [ ] **OCR-05**: gosseract backend implements the same interface behind `//go:build gosseract`
+- [x] **OCR-02**: CLI backend parses Tesseract TSV (level-5 rows) into words with text/conf/bbox
+- [x] **OCR-03**: CLI backend locates tesseract via `TESSERACT_PATH` with Windows default
+- [x] **OCR-04**: CLI backend sets `TESSDATA_PREFIX` if unset
+- [x] **OCR-05**: gosseract backend implements the same interface behind `//go:build gosseract`
 - [x] **OCR-06**: OCR backend selectable at startup via `OCR_BACKEND=cli|gosseract`
 
 ### Editing
@@ -47,7 +47,7 @@
 
 ### Testing
 
-- [ ] **TEST-01**: Unit tests for TSV parsing
+- [x] **TEST-01**: Unit tests for TSV parsing
 - [ ] **TEST-02**: Unit tests for font-fit function
 - [ ] **TEST-03**: Synthetic end-to-end test: gg draws a name onto an image, pdfcpu imports to PDF, full pipeline OCRs and replaces, result PDF OCRs to new text
 - [ ] **TEST-04**: Race detector passes on store and handlers
@@ -93,16 +93,16 @@
 | EDIT-05 | Phase 5 | Pending |
 | EDIT-06 | Phase 5 | Pending |
 | OCR-01 | Phase 1 | Complete |
-| OCR-02 | Phase 3 | Pending |
-| OCR-03 | Phase 3 | Pending |
-| OCR-04 | Phase 3 | Pending |
-| OCR-05 | Phase 3 | Pending |
+| OCR-02 | Phase 3 | Complete |
+| OCR-03 | Phase 3 | Complete |
+| OCR-04 | Phase 3 | Complete |
+| OCR-05 | Phase 3 | Complete |
 | OCR-06 | Phase 1 | Complete |
 | PDF-01 | Phase 2 | Pending |
 | PDF-02 | Phase 2 | Pending |
 | PDF-03 | Phase 2 | Pending |
 | PDF-04 | Phase 2 | Pending |
-| TEST-01 | Phase 3 | Pending |
+| TEST-01 | Phase 3 | Complete |
 | TEST-02 | Phase 5 | Pending |
 | TEST-03 | Phase 5 | Pending |
 | TEST-04 | Phase 4 | Pending |

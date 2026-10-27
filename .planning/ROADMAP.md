@@ -44,7 +44,8 @@ A Go HTTP backend that turns a scanned PDF into editable page images: extract em
   3. Rebuild truncates any pre-existing output file so no pages are appended.
   4. Extraction handles pages yielding multiple XObjects (masks/thumbnails) by selecting the maximum pixel area.
 
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 02-01-PLAN.md — PDF I/O layer: extract largest image per page and dimension-preserving rebuild
 
 ### Phase 3: OCR Engine & TSV Parsing
 
@@ -59,7 +60,8 @@ A Go HTTP backend that turns a scanned PDF into editable page images: extract em
   4. Unit tests for TSV parsing pass on golden fixtures (header, empty text, -1 rows, blank lines).
   5. The gosseract backend compiles behind `//go:build gosseract` and implements the same interface.
 
-**Plans**: TBD
+**Plans**: 1/1 plans executed
+- [x] 03-01-PLAN.md
 
 ### Phase 4: In-Memory Document Store & Upload/Preview/Cleanup API
 
@@ -97,6 +99,6 @@ A Go HTTP backend that turns a scanned PDF into editable page images: extract em
 |-------|----------------|--------|-----------|
 | 1. Project Bootstrap & Configuration | 1/1 | In Progress | - |
 | 2. PDF I/O Layer | 0/TBD | Not started | - |
-| 3. OCR Engine & TSV Parsing | 0/TBD | Not started | - |
+| 3. OCR Engine & TSV Parsing | 1/1 | In Progress | - |
 | 4. In-Memory Document Store & Upload/Preview/Cleanup API | 0/TBD | Not started | - |
 | 5. Edit, Rebuild & End-to-End Verification | 0/TBD | Not started | - |
