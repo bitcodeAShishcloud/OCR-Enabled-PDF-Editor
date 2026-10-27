@@ -77,12 +77,40 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated by roadmap creation) | | |
+| API-01 | Phase 4 | Pending |
+| API-02 | Phase 4 | Pending |
+| API-03 | Phase 5 | Pending |
+| API-04 | Phase 5 | Pending |
+| API-05 | Phase 4 | Pending |
+| API-06 | Phase 4 | Pending |
+| API-07 | Phase 4 | Pending |
+| CONF-01 | Phase 1 | Pending |
+| CONF-02 | Phase 1 | Pending |
+| EDIT-01 | Phase 5 | Pending |
+| EDIT-02 | Phase 5 | Pending |
+| EDIT-03 | Phase 5 | Pending |
+| EDIT-04 | Phase 5 | Pending |
+| EDIT-05 | Phase 5 | Pending |
+| EDIT-06 | Phase 5 | Pending |
+| OCR-01 | Phase 1 | Pending |
+| OCR-02 | Phase 3 | Pending |
+| OCR-03 | Phase 3 | Pending |
+| OCR-04 | Phase 3 | Pending |
+| OCR-05 | Phase 3 | Pending |
+| OCR-06 | Phase 1 | Pending |
+| PDF-01 | Phase 2 | Pending |
+| PDF-02 | Phase 2 | Pending |
+| PDF-03 | Phase 2 | Pending |
+| PDF-04 | Phase 2 | Pending |
+| TEST-01 | Phase 3 | Pending |
+| TEST-02 | Phase 5 | Pending |
+| TEST-03 | Phase 5 | Pending |
+| TEST-04 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 26 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 26
+- v1 requirements: 29 total
+- Mapped to phases: 29
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-10-27*
