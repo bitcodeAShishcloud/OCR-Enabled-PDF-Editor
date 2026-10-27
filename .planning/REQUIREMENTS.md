@@ -14,12 +14,12 @@
 
 ### OCR
 
-- [ ] **OCR-01**: OCR engine interface exposes `Recognize(imagePath) ([]Word, error)` with word text, confidence, and bounding box
+- [x] **OCR-01**: OCR engine interface exposes `Recognize(imagePath) ([]Word, error)` with word text, confidence, and bounding box
 - [ ] **OCR-02**: CLI backend parses Tesseract TSV (level-5 rows) into words with text/conf/bbox
 - [ ] **OCR-03**: CLI backend locates tesseract via `TESSERACT_PATH` with Windows default
 - [ ] **OCR-04**: CLI backend sets `TESSDATA_PREFIX` if unset
 - [ ] **OCR-05**: gosseract backend implements the same interface behind `//go:build gosseract`
-- [ ] **OCR-06**: OCR backend selectable at startup via `OCR_BACKEND=cli|gosseract`
+- [x] **OCR-06**: OCR backend selectable at startup via `OCR_BACKEND=cli|gosseract`
 
 ### Editing
 
@@ -42,8 +42,8 @@
 
 ### Configuration
 
-- [ ] **CONF-01**: Configuration via environment variables (`TESSERACT_PATH`, `FONT_PATH`, `OCR_BACKEND`)
-- [ ] **CONF-02**: Default build is CGO-free
+- [x] **CONF-01**: Configuration via environment variables (`TESSERACT_PATH`, `FONT_PATH`, `OCR_BACKEND`)
+- [x] **CONF-02**: Default build is CGO-free
 
 ### Testing
 
@@ -84,20 +84,20 @@
 | API-05 | Phase 4 | Pending |
 | API-06 | Phase 4 | Pending |
 | API-07 | Phase 4 | Pending |
-| CONF-01 | Phase 1 | Pending |
-| CONF-02 | Phase 1 | Pending |
+| CONF-01 | Phase 1 | Complete |
+| CONF-02 | Phase 1 | Complete |
 | EDIT-01 | Phase 5 | Pending |
 | EDIT-02 | Phase 5 | Pending |
 | EDIT-03 | Phase 5 | Pending |
 | EDIT-04 | Phase 5 | Pending |
 | EDIT-05 | Phase 5 | Pending |
 | EDIT-06 | Phase 5 | Pending |
-| OCR-01 | Phase 1 | Pending |
+| OCR-01 | Phase 1 | Complete |
 | OCR-02 | Phase 3 | Pending |
 | OCR-03 | Phase 3 | Pending |
 | OCR-04 | Phase 3 | Pending |
 | OCR-05 | Phase 3 | Pending |
-| OCR-06 | Phase 1 | Pending |
+| OCR-06 | Phase 1 | Complete |
 | PDF-01 | Phase 2 | Pending |
 | PDF-02 | Phase 2 | Pending |
 | PDF-03 | Phase 2 | Pending |

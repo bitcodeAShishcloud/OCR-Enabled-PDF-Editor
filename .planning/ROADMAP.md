@@ -18,6 +18,7 @@ A Go HTTP backend that turns a scanned PDF into editable page images: extract em
 ## Phase Details
 
 ### Phase 1: Project Bootstrap & Configuration
+
 **Goal**: The service boots as a CGO-free HTTP server, loads configuration from environment variables, validates that Tesseract and the font exist, and exposes an OCR engine interface with selectable CLI/gosseract backends.
 **Mode:** mvp
 **Depends on**: Nothing (first phase)
@@ -27,9 +28,12 @@ A Go HTTP backend that turns a scanned PDF into editable page images: extract em
   2. `TESSERACT_PATH`, `FONT_PATH`, and `OCR_BACKEND` are read from the environment with documented defaults, and invalid values fail fast with clear messages.
   3. The default build succeeds with `CGO_ENABLED=0`; the gosseract-tagged build succeeds separately behind `//go:build gosseract`.
   4. The `ocr.Engine` interface (`Recognize(imagePath) ([]Word, error)`) is defined and backend selection returns the configured implementation.
-**Plans**: TBD
+
+**Plans**: 1/1 plans executed
+- [x] 01-01-PLAN.md
 
 ### Phase 2: PDF I/O Layer
+
 **Goal**: Given a scanned PDF, extract the largest embedded raster image per page; given a set of page images, rebuild a PDF with one page per image and dimensions taken from the source images.
 **Mode:** mvp
 **Depends on**: Phase 1
@@ -39,9 +43,11 @@ A Go HTTP backend that turns a scanned PDF into editable page images: extract em
   2. Rebuild from a set of page images produces a PDF with one page per image whose page dimensions match the source images (no A4 stretch).
   3. Rebuild truncates any pre-existing output file so no pages are appended.
   4. Extraction handles pages yielding multiple XObjects (masks/thumbnails) by selecting the maximum pixel area.
+
 **Plans**: TBD
 
 ### Phase 3: OCR Engine & TSV Parsing
+
 **Goal**: OCR an image to word-level text with confidence and bounding boxes through the CLI backend, with the gosseract backend available behind a build tag.
 **Mode:** mvp
 **Depends on**: Phase 1
@@ -52,9 +58,11 @@ A Go HTTP backend that turns a scanned PDF into editable page images: extract em
   3. `TESSERACT_PATH` overrides the binary location (Windows default) and `TESSDATA_PREFIX` is set when unset.
   4. Unit tests for TSV parsing pass on golden fixtures (header, empty text, -1 rows, blank lines).
   5. The gosseract backend compiles behind `//go:build gosseract` and implements the same interface.
+
 **Plans**: TBD
 
 ### Phase 4: In-Memory Document Store & Upload/Preview/Cleanup API
+
 **Goal**: A client can upload a scanned PDF and receive a document id with per-page word-level OCR results, preview any page as a PNG, and clean up the document and its artifacts.
 **Mode:** mvp
 **Depends on**: Phase 2, Phase 3
@@ -65,9 +73,11 @@ A Go HTTP backend that turns a scanned PDF into editable page images: extract em
   3. `DELETE /api/documents/{id}` removes the document and its artifacts; later access returns 404.
   4. Upload validates the PDF magic bytes and enforces size/page caps; the in-memory store is mutex-protected.
   5. The race detector passes on the store and handlers (`go test -race`).
+
 **Plans**: TBD
 
 ### Phase 5: Edit, Rebuild & End-to-End Verification
+
 **Goal**: A client can replace a detected word on a page with new text in place and download a rebuilt PDF, with the replacement visually consistent and OCR-verifiable.
 **Mode:** mvp
 **Depends on**: Phase 4
@@ -78,13 +88,14 @@ A Go HTTP backend that turns a scanned PDF into editable page images: extract em
   3. The TTF font loads from `FONT_PATH` (default `C:\Windows\Fonts\arial.ttf`) and font-fit unit tests pass.
   4. `GET /api/documents/{id}/result.pdf` rebuilds one page per image (edited where edited) and streams the PDF as an attachment with correct page dimensions.
   5. The synthetic end-to-end test passes: gg draws a name, pdfcpu imports to PDF, the pipeline OCRs and replaces, and the result PDF OCRs to the new text.
+
 **Plans**: TBD
 
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Project Bootstrap & Configuration | 0/TBD | Not started | - |
+| 1. Project Bootstrap & Configuration | 1/1 | In Progress | - |
 | 2. PDF I/O Layer | 0/TBD | Not started | - |
 | 3. OCR Engine & TSV Parsing | 0/TBD | Not started | - |
 | 4. In-Memory Document Store & Upload/Preview/Cleanup API | 0/TBD | Not started | - |
