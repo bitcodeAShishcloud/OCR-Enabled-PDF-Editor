@@ -76,7 +76,8 @@ A Go HTTP backend that turns a scanned PDF into editable page images: extract em
   4. Upload validates the PDF magic bytes and enforces size/page caps; the in-memory store is mutex-protected.
   5. The race detector passes on the store and handlers (`go test -race`).
 
-**Plans**: TBD
+**Plans**: 1/1 plans executed
+- [x] 04-01-PLAN.md
 
 ### Phase 5: Edit, Rebuild & End-to-End Verification
 
@@ -100,5 +101,5 @@ A Go HTTP backend that turns a scanned PDF into editable page images: extract em
 | 1. Project Bootstrap & Configuration | 1/1 | In Progress | - |
 | 2. PDF I/O Layer | 0/TBD | Not started | - |
 | 3. OCR Engine & TSV Parsing | 1/1 | In Progress | - |
-| 4. In-Memory Document Store & Upload/Preview/Cleanup API | 0/TBD | Not started | - |
+| 4. In-Memory Document Store & Upload/Preview/Cleanup API | 1/1 | In Progress | - |
 | 5. Edit, Rebuild & End-to-End Verification | 0/TBD | Not started | - |

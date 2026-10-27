@@ -32,13 +32,13 @@
 
 ### API
 
-- [ ] **API-01**: `POST /api/documents` uploads PDF, extracts images, OCRs all pages, returns docId and per-page words with bboxes
-- [ ] **API-02**: `GET /api/documents/{id}/pages/{n}` serves the page PNG
+- [x] **API-01**: `POST /api/documents` uploads PDF, extracts images, OCRs all pages, returns docId and per-page words with bboxes
+- [x] **API-02**: `GET /api/documents/{id}/pages/{n}` serves the page PNG
 - [ ] **API-03**: `POST /api/documents/{id}/edits` applies an edit and returns the edited preview
 - [ ] **API-04**: `GET /api/documents/{id}/result.pdf` rebuilds and streams the final PDF
-- [ ] **API-05**: `DELETE /api/documents/{id}` cleans up document and artifacts
-- [ ] **API-06**: In-memory document store is mutex-protected
-- [ ] **API-07**: Document IDs are server-generated
+- [x] **API-05**: `DELETE /api/documents/{id}` cleans up document and artifacts
+- [x] **API-06**: In-memory document store is mutex-protected
+- [x] **API-07**: Document IDs are server-generated
 
 ### Configuration
 
@@ -50,7 +50,7 @@
 - [x] **TEST-01**: Unit tests for TSV parsing
 - [ ] **TEST-02**: Unit tests for font-fit function
 - [ ] **TEST-03**: Synthetic end-to-end test: gg draws a name onto an image, pdfcpu imports to PDF, full pipeline OCRs and replaces, result PDF OCRs to new text
-- [ ] **TEST-04**: Race detector passes on store and handlers
+- [x] **TEST-04**: Race detector passes on store and handlers
 
 ## v2 Requirements
 
@@ -77,13 +77,13 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| API-01 | Phase 4 | Pending |
-| API-02 | Phase 4 | Pending |
+| API-01 | Phase 4 | Complete |
+| API-02 | Phase 4 | Complete |
 | API-03 | Phase 5 | Pending |
 | API-04 | Phase 5 | Pending |
-| API-05 | Phase 4 | Pending |
-| API-06 | Phase 4 | Pending |
-| API-07 | Phase 4 | Pending |
+| API-05 | Phase 4 | Complete |
+| API-06 | Phase 4 | Complete |
+| API-07 | Phase 4 | Complete |
 | CONF-01 | Phase 1 | Complete |
 | CONF-02 | Phase 1 | Complete |
 | EDIT-01 | Phase 5 | Pending |
@@ -105,7 +105,7 @@
 | TEST-01 | Phase 3 | Complete |
 | TEST-02 | Phase 5 | Pending |
 | TEST-03 | Phase 5 | Pending |
-| TEST-04 | Phase 4 | Pending |
+| TEST-04 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 29 total
