@@ -49,12 +49,12 @@ func makeScannedPDF(t *testing.T, dir string, pages int) string {
 	imgs := make([]string, 0, pages)
 	for i := 0; i < pages; i++ {
 		p := filepath.Join(dir, fmt.Sprintf("p%d.png", i))
-		makePNG(t, p, 64, 48)
+		makePNG(t, p, 400, 300)
 		imgs = append(imgs, p)
 	}
 	pdfPath := filepath.Join(dir, "in.pdf")
 	imp := pdfapi.DefaultImportConfig()
-	imp.PageDim = &types.Dim{Width: 64, Height: 48}
+	imp.PageDim = &types.Dim{Width: 400, Height: 300}
 	if err := pdfapi.ImportImagesFile(context.Background(), imgs, pdfPath, imp, model.NewStatelessConfiguration()); err != nil {
 		t.Fatalf("import: %v", err)
 	}

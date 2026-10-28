@@ -6,7 +6,16 @@ export async function uploadPdf(file: File): Promise<UploadResponse> {
   const form = new FormData();
   form.append('file', file);
   const res = await fetch(`${BASE}/documents`, { method: 'POST', body: form });
-  if (!res.ok) throw new Error(`upload failed: ${res.status}`);
+  if (!res.ok) {
+    let msg = `upload failed: ${res.status}`;
+    try {
+      const body = await res.json();
+      if (body && body.error) msg = `${msg} — ${body.error}`;
+    } catch {
+      // ignore parse errors
+    }
+    throw new Error(msg);
+  }
   return res.json();
 }
 

@@ -84,6 +84,19 @@ func ExtractImages(ctx context.Context, pdfPath, outDir string) ([]string, error
 	return out, nil
 }
 
+func imageSize(path string) (int, int, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer f.Close()
+	cfg, _, err := image.DecodeConfig(f)
+	if err != nil {
+		return 0, 0, err
+	}
+	return cfg.Width, cfg.Height, nil
+}
+
 func largestImage(paths []string) (string, error) {
 	if len(paths) == 0 {
 		return "", fmt.Errorf("pdfio: no candidate images")

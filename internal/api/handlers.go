@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"image"
 	"image/png"
 	"io"
@@ -183,8 +184,21 @@ func (h *Handler) upload(w http.ResponseWriter, r *http.Request) {
 	imgDir := filepath.Join(dir, "pages")
 	imagePaths, err := pdfio.ExtractImages(ctx, pdfPath, imgDir)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "image extraction failed")
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	// Guard against digital/vector PDFs that only embed tiny thumbnails.
+	for i, p := range imagePaths {
+		f, oerr := os.Open(p)
+		if oerr == nil {
+			cfg, _, derr := image.DecodeConfig(f)
+			f.Close()
+			if derr == nil && (cfg.Width < 100 || cfg.Height < 100) {
+				writeError(w, http.StatusBadRequest, fmt.Sprintf("page %d image is too small (%dx%d); this PDF appears to be a digital/vector PDF, not a scanned PDF with embedded page images. This tool only supports scanned PDFs.", i+1, cfg.Width, cfg.Height))
+				return
+			}
+		}
 	}
 
 	id, err := newUUID()

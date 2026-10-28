@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"image"
+	"golang.org/x/image/draw"
+	"image/png"
 	"io"
 	"os"
 	"os/exec"
@@ -80,6 +83,8 @@ func ParseTSV(r io.Reader) ([]Word, error) {
 }
 
 // Recognize runs tesseract on the given image and parses its TSV output.
+// Small images are upscaled 2x before OCR to improve accuracy; bounding boxes
+// are scaled back to the original image coordinates.
 func (c *cliEngine) Recognize(imagePath string) ([]Word, error) {
 	bin := c.tesseractPath
 	if bin == "" {
@@ -94,7 +99,25 @@ func (c *cliEngine) Recognize(imagePath string) ([]Word, error) {
 		os.Setenv("TESSDATA_PREFIX", derived)
 	}
 
-	cmd := exec.Command(bin, imagePath, "stdout", "tsv")
+	// Preprocess: upscale small images for better OCR accuracy.
+	ocrPath := imagePath
+	scale := 1.0
+	f, err := os.Open(imagePath)
+	if err == nil {
+		cfg, _, derr := image.DecodeConfig(f)
+		f.Close()
+		if derr == nil && (cfg.Width < 1000 || cfg.Height < 1000) {
+			scale = 2.0
+			if upscaled, uerr := upscaleImage(imagePath, scale); uerr == nil {
+				ocrPath = upscaled
+				defer os.Remove(upscaled)
+			} else {
+				scale = 1.0
+			}
+		}
+	}
+
+	cmd := exec.Command(bin, ocrPath, "stdout", "tsv", "--oem", "1", "--psm", "3")
 	if os.Getenv("TESSDATA_PREFIX") != "" {
 		cmd.Env = append(os.Environ(), "TESSDATA_PREFIX="+os.Getenv("TESSDATA_PREFIX"))
 	}
@@ -104,5 +127,51 @@ func (c *cliEngine) Recognize(imagePath string) ([]Word, error) {
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("ocr: tesseract failed: %w (stderr: %s)", err, strings.TrimSpace(stderr.String()))
 	}
-	return ParseTSV(bytes.NewReader(stdout.Bytes()))
+
+	words, err := ParseTSV(bytes.NewReader(stdout.Bytes()))
+	if err != nil {
+		return nil, err
+	}
+	if scale != 1.0 {
+		for i := range words {
+			words[i].X0 = int(float64(words[i].X0) / scale)
+			words[i].Y0 = int(float64(words[i].Y0) / scale)
+			words[i].X1 = int(float64(words[i].X1) / scale)
+			words[i].Y1 = int(float64(words[i].Y1) / scale)
+		}
+	}
+	return words, nil
+}
+
+// upscaleImage creates a 2x (or scale-factor) upscaled copy of the image at a temp path.
+func upscaleImage(src string, factor float64) (string, error) {
+	f, err := os.Open(src)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	img, _, err := image.Decode(f)
+	if err != nil {
+		return "", err
+	}
+	b := img.Bounds()
+	nw := int(float64(b.Dx()) * factor)
+	nh := int(float64(b.Dy()) * factor)
+	dst := image.NewRGBA(image.Rect(0, 0, nw, nh))
+	draw.CatmullRom.Scale(dst, dst.Bounds(), img, b, draw.Over, nil)
+
+	tmp, err := os.CreateTemp("", "ocrpdf-upscaled-*.png")
+	if err != nil {
+		return "", err
+	}
+	tmp.Close()
+	out, err := os.Create(tmp.Name())
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+	if err := png.Encode(out, dst); err != nil {
+		return "", err
+	}
+	return tmp.Name(), nil
 }
