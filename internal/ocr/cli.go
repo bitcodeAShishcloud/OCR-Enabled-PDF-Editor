@@ -99,25 +99,38 @@ func (c *cliEngine) Recognize(imagePath string) ([]Word, error) {
 		os.Setenv("TESSDATA_PREFIX", derived)
 	}
 
-	// Preprocess: upscale small images for better OCR accuracy.
+// Preprocess: upscale small images for better OCR accuracy; convert to grayscale
+	// and add padding to improve edge detection.
 	ocrPath := imagePath
 	scale := 1.0
 	f, err := os.Open(imagePath)
 	if err == nil {
 		cfg, _, derr := image.DecodeConfig(f)
 		f.Close()
-		if derr == nil && (cfg.Width < 1000 || cfg.Height < 1000) {
-			scale = 2.0
-			if upscaled, uerr := upscaleImage(imagePath, scale); uerr == nil {
-				ocrPath = upscaled
-				defer os.Remove(upscaled)
-			} else {
-				scale = 1.0
+		if derr == nil {
+			scale = 1.0
+			if cfg.Width < 1500 {
+				scale = float64(1500) / float64(cfg.Width)
+				if scale > 4.0 {
+					scale = 4.0
+				}
+			}
+			if scale > 1.0 {
+				if upscaled, uerr := preprocessImage(imagePath, scale); uerr == nil {
+					ocrPath = upscaled
+					defer os.Remove(upscaled)
+				} else {
+					scale = 1.0
+				}
 			}
 		}
 	}
 
-	cmd := exec.Command(bin, ocrPath, "stdout", "tsv", "--oem", "1", "--psm", "3")
+	psm := os.Getenv("TESSERACT_PSM")
+	if psm == "" {
+		psm = "3"
+	}
+	cmd := exec.Command(bin, ocrPath, "stdout", "tsv", "--oem", "1", "--psm", psm)
 	if os.Getenv("TESSDATA_PREFIX") != "" {
 		cmd.Env = append(os.Environ(), "TESSDATA_PREFIX="+os.Getenv("TESSDATA_PREFIX"))
 	}
@@ -143,8 +156,8 @@ func (c *cliEngine) Recognize(imagePath string) ([]Word, error) {
 	return words, nil
 }
 
-// upscaleImage creates a 2x (or scale-factor) upscaled copy of the image at a temp path.
-func upscaleImage(src string, factor float64) (string, error) {
+// preprocessImage creates an upscaled, grayscale, padded copy of the image for better OCR.
+func preprocessImage(src string, factor float64) (string, error) {
 	f, err := os.Open(src)
 	if err != nil {
 		return "", err
@@ -155,12 +168,23 @@ func upscaleImage(src string, factor float64) (string, error) {
 		return "", err
 	}
 	b := img.Bounds()
-	nw := int(float64(b.Dx()) * factor)
-	nh := int(float64(b.Dy()) * factor)
+	nw := int(float64(b.Dx())*factor) + 20
+	nh := int(float64(b.Dy())*factor) + 20
 	dst := image.NewRGBA(image.Rect(0, 0, nw, nh))
-	draw.CatmullRom.Scale(dst, dst.Bounds(), img, b, draw.Over, nil)
+	// white background
+	for y := 0; y < nh; y++ {
+		for x := 0; x < nw; x++ {
+			dst.Set(x, y, image.White)
+		}
+	}
+	// grayscale upscale into center
+	gray := image.NewGray(b)
+	draw.Draw(gray, b, img, b.Min, draw.Src)
+	scaled := image.NewRGBA(image.Rect(0, 0, int(float64(b.Dx())*factor), int(float64(b.Dy())*factor)))
+	draw.CatmullRom.Scale(scaled, scaled.Bounds(), gray, b, draw.Over, nil)
+	draw.Draw(dst, scaled.Bounds().Add(image.Pt(10, 10)), scaled, image.Point{}, draw.Src)
 
-	tmp, err := os.CreateTemp("", "ocrpdf-upscaled-*.png")
+	tmp, err := os.CreateTemp("", "ocrpdf-prep-*.png")
 	if err != nil {
 		return "", err
 	}
