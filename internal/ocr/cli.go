@@ -5,7 +5,9 @@ import (
 	"encoding/csv"
 	"fmt"
 	"image"
-	"golang.org/x/image/draw"
+	"image/color"
+	"image/draw"
+	xdraw "golang.org/x/image/draw"
 	"image/png"
 	"io"
 	"os"
@@ -99,7 +101,7 @@ func (c *cliEngine) Recognize(imagePath string) ([]Word, error) {
 		os.Setenv("TESSDATA_PREFIX", derived)
 	}
 
-// Preprocess: upscale small images for better OCR accuracy; convert to grayscale
+	// Preprocess: upscale small images for better OCR accuracy; convert to grayscale
 	// and add padding to improve edge detection.
 	ocrPath := imagePath
 	scale := 1.0
@@ -130,7 +132,14 @@ func (c *cliEngine) Recognize(imagePath string) ([]Word, error) {
 	if psm == "" {
 		psm = "3"
 	}
-	cmd := exec.Command(bin, ocrPath, "stdout", "tsv", "--oem", "1", "--psm", psm)
+	configArgs := []string{
+		"--oem", "1",
+		"--psm", psm,
+		"-c", "load_system_dawg=0",
+		"-c", "load_freq_dawg=0",
+		"-c", "preserve_interword_spaces=1",
+	}
+	cmd := exec.Command(bin, append([]string{ocrPath, "stdout", "tsv"}, configArgs...)...)
 	if os.Getenv("TESSDATA_PREFIX") != "" {
 		cmd.Env = append(os.Environ(), "TESSDATA_PREFIX="+os.Getenv("TESSDATA_PREFIX"))
 	}
@@ -156,7 +165,8 @@ func (c *cliEngine) Recognize(imagePath string) ([]Word, error) {
 	return words, nil
 }
 
-// preprocessImage creates an upscaled, grayscale, padded copy of the image for better OCR.
+// preprocessImage creates an upscaled, grayscale (with auto-invert for dark
+// backgrounds), binarized (Otsu), padded copy of the image for better OCR.
 func preprocessImage(src string, factor float64) (string, error) {
 	f, err := os.Open(src)
 	if err != nil {
@@ -168,20 +178,112 @@ func preprocessImage(src string, factor float64) (string, error) {
 		return "", err
 	}
 	b := img.Bounds()
+
+	// Convert to grayscale.
+	gray := image.NewGray(b)
+	draw.Draw(gray, b, img, b.Min, draw.Src)
+
+	// Auto-invert if the background is dark (mean brightness < 128).
+	var sum int64
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			sum += int64(gray.GrayAt(x, y).Y)
+		}
+	}
+	pixels := int64(b.Dx() * b.Dy())
+	mean := uint8(0)
+	if pixels > 0 {
+		mean = uint8(sum / pixels)
+	}
+	if mean < 128 {
+		// invert
+		for y := b.Min.Y; y < b.Max.Y; y++ {
+			for x := b.Min.X; x < b.Max.X; x++ {
+				gray.SetGray(x, y, color.Gray{Y: 255 - gray.GrayAt(x, y).Y})
+			}
+		}
+	}
+
+	// Otsu binarization.
+	hist := make([]int, 256)
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			hist[gray.GrayAt(x, y).Y]++
+		}
+	}
+	total := b.Dx() * b.Dy()
+	var sumB int64
+	for i := 0; i < 256; i++ {
+		sumB += int64(i * hist[i])
+	}
+	var wB, wF int
+	var sumF int64
+	maxVar := 0.0
+	threshold := 128
+	for t := 0; t < 256; t++ {
+		wB += hist[t]
+		if wB == 0 {
+			continue
+		}
+		wF = total - wB
+		if wF == 0 {
+			break
+		}
+		sumB -= int64(t * hist[t]) // approximate; recompute below
+		// recompute sums properly
+		_ = sumB
+		_ = sumF
+	}
+	// Recompute threshold cleanly.
+	var sumTotal int64
+	for i := 0; i < 256; i++ {
+		sumTotal += int64(i * hist[i])
+	}
+	wB = 0
+	var sumB2 int64
+	maxVar = 0
+	threshold = 128
+	for t := 0; t < 256; t++ {
+		wB += hist[t]
+		if wB == 0 {
+			continue
+		}
+		wF = total - wB
+		if wF == 0 {
+			break
+		}
+		sumB2 += int64(t * hist[t])
+		mB := float64(sumB2) / float64(wB)
+		mF := float64(sumTotal-sumB2) / float64(wF)
+		between := float64(wB) * float64(wF) * (mB - mF) * (mB - mF)
+		if between > maxVar {
+			maxVar = between
+			threshold = t
+		}
+	}
+
+	bin := image.NewGray(b)
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			v := uint8(255)
+			if gray.GrayAt(x, y).Y < uint8(threshold) {
+				v = 0
+			}
+			bin.SetGray(x, y, color.Gray{Y: v})
+		}
+	}
+
+	// Upscale.
 	nw := int(float64(b.Dx())*factor) + 20
 	nh := int(float64(b.Dy())*factor) + 20
 	dst := image.NewRGBA(image.Rect(0, 0, nw, nh))
-	// white background
 	for y := 0; y < nh; y++ {
 		for x := 0; x < nw; x++ {
 			dst.Set(x, y, image.White)
 		}
 	}
-	// grayscale upscale into center
-	gray := image.NewGray(b)
-	draw.Draw(gray, b, img, b.Min, draw.Src)
 	scaled := image.NewRGBA(image.Rect(0, 0, int(float64(b.Dx())*factor), int(float64(b.Dy())*factor)))
-	draw.CatmullRom.Scale(scaled, scaled.Bounds(), gray, b, draw.Over, nil)
+	xdraw.CatmullRom.Scale(scaled, scaled.Bounds(), bin, b, draw.Over, nil)
 	draw.Draw(dst, scaled.Bounds().Add(image.Pt(10, 10)), scaled, image.Point{}, draw.Src)
 
 	tmp, err := os.CreateTemp("", "ocrpdf-prep-*.png")
