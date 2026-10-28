@@ -1,4 +1,4 @@
-# Roadmap: OCR PDF Text-Editing Backend (Go)
+﻿# Roadmap: OCR PDF Text-Editing Backend (Go)
 
 ## Overview
 
@@ -50,7 +50,7 @@ A Go HTTP backend that turns a scanned PDF into editable page images: extract em
 
 **Plans**: 1 plan
 
-- [ ] 02-01-PLAN.md — PDF I/O layer: extract largest image per page and dimension-preserving rebuild
+- [ ] 02-01-PLAN.md â€” PDF I/O layer: extract largest image per page and dimension-preserving rebuild
 
 ### Phase 3: OCR Engine & TSV Parsing
 
@@ -115,3 +115,13 @@ A Go HTTP backend that turns a scanned PDF into editable page images: extract em
 | 3. OCR Engine & TSV Parsing | 1/1 | In Progress | - |
 | 4. In-Memory Document Store & Upload/Preview/Cleanup API | 1/1 | In Progress | - |
 | 5. Edit, Rebuild & End-to-End Verification | 1/1 | In Progress|  |
+
+### Phase 6: React Web UI
+
+**Goal:** React 18 + TypeScript + Vite + Tailwind frontend consuming the Go REST API; Go serves the built frontend as static files with SPA fallback.
+**Requirements**: (frontend consumes API-01..API-05, CONF-01; no new backend requirements)
+**Depends on:** Phase 5
+**Plans:** 1/1 plans executed
+
+Plans:
+- [x] 06-01-PLAN.md - Scaffold Vite/React/TS/Tailwind web/, implement upload/document/edit/download flows, add Go spaHandler with WEB_DIST override and SPA fallback
