@@ -101,6 +101,11 @@ func main() {
 	}
 	mux := newMux()
 
+	distDir := os.Getenv("WEB_DIST")
+	if distDir == "" {
+		distDir = "web/dist"
+	}
+
 	store := api.NewStore()
 	h := &api.Handler{
 		Store:          store,
@@ -114,6 +119,13 @@ func main() {
 	mux.HandleFunc("DELETE /api/documents/{id}", h.DeleteDoc)
 	mux.HandleFunc("POST /api/documents/{id}/edits", h.Edit)
 	mux.HandleFunc("GET /api/documents/{id}/result.pdf", h.Result)
+
+	if info, err := os.Stat(distDir); err == nil && info.IsDir() {
+		mux.Handle("GET /", spaHandler(distDir))
+		slog.Info("serving spa", "dir", distDir)
+	} else {
+		slog.Info("web/dist not found; skipping spa serving", "dir", distDir)
+	}
 
 	srv := &http.Server{
 		Addr:              fmt.Sprintf("0.0.0.0:%d", cfg.Port),
