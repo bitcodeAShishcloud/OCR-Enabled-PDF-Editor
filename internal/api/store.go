@@ -13,8 +13,12 @@ type Page struct {
 	Words     []ocr.Word
 }
 
-// Document is immutable after insertion into the Store.
+// Document is mutable after insertion: Page.ImagePath is overwritten on edit.
+// mu guards Pages (and any per-document state). Zero value is usable.
+// Lock ordering: store mutex -> doc mutex, never reverse. Never hold doc mutex
+// across Tesseract/pdfcpu calls except for the full edit mutation.
 type Document struct {
+	mu    sync.Mutex
 	ID    string
 	Dir   string
 	Pages []Page

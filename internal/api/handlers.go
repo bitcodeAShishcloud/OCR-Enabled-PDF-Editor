@@ -1,8 +1,11 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"image"
+	"image/png"
 	"io"
 	"log/slog"
 	"net/http"
@@ -12,6 +15,10 @@ import (
 
 	pdfapi "github.com/pdfcpu/pdfcpu/pkg/api"
 
+	"github.com/fogleman/gg"
+	"golang.org/x/image/font"
+
+	"ocrpdf/internal/edit"
 	"ocrpdf/internal/ocr"
 	"ocrpdf/internal/pdfio"
 )
@@ -24,6 +31,7 @@ const (
 type Handler struct {
 	Store           *Store
 	Engine          ocr.Engine
+	FontPath        string
 	MaxUploadBytes  int64
 	MaxPages        int
 }
@@ -227,11 +235,14 @@ func (h *Handler) getPage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "document not found")
 		return
 	}
+	doc.mu.Lock()
 	if n > len(doc.Pages) {
+		doc.mu.Unlock()
 		writeError(w, http.StatusNotFound, "page not found")
 		return
 	}
 	imgPath := doc.Pages[n-1].ImagePath
+	doc.mu.Unlock()
 
 	w.Header().Set("Content-Type", "image/png")
 	http.ServeFile(w, r, imgPath)
@@ -251,5 +262,197 @@ func (h *Handler) deleteDoc(w http.ResponseWriter, r *http.Request) {
 		slog.Error("cleanup failed", "id", id, "err", err)
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type editRequest struct {
+	Page     int       `json:"page"`
+	OldText  string    `json:"oldText"`
+	WordIDs  []int     `json:"wordIds"`
+	NewText  string    `json:"newText"`
+	FontPath string    `json:"fontPath"`
+	FontSize *float64  `json:"fontSize"`
+	Color    string    `json:"color"`
+}
+
+// Edit is the exported handler for POST /api/documents/{id}/edits.
+func (h *Handler) Edit(w http.ResponseWriter, r *http.Request) { h.edit(w, r) }
+
+func (h *Handler) edit(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	var req editRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid json")
+		return
+	}
+	if req.Page < 1 {
+		writeError(w, http.StatusBadRequest, "page required")
+		return
+	}
+	if req.NewText == "" {
+		writeError(w, http.StatusBadRequest, "newText required")
+		return
+	}
+	if req.OldText == "" && len(req.WordIDs) == 0 {
+		writeError(w, http.StatusBadRequest, "oldText or wordIds required")
+		return
+	}
+
+	doc, ok := h.Store.Get(id)
+	if !ok {
+		writeError(w, http.StatusNotFound, "document not found")
+		return
+	}
+	doc.mu.Lock()
+	defer doc.mu.Unlock()
+
+	if req.Page > len(doc.Pages) {
+		writeError(w, http.StatusBadRequest, "page not found")
+		return
+	}
+	page := &doc.Pages[req.Page-1]
+
+	// Resolve target words.
+	var targets []ocr.Word
+	if len(req.WordIDs) > 0 {
+		for _, idx := range req.WordIDs {
+			if idx < 0 || idx >= len(page.Words) {
+				writeError(w, http.StatusBadRequest, "wordId out of range")
+				return
+			}
+			targets = append(targets, page.Words[idx])
+		}
+	} else {
+		for _, wd := range page.Words {
+			if wd.Text == req.OldText {
+				targets = append(targets, wd)
+				break
+			}
+		}
+		if len(targets) == 0 {
+			writeError(w, http.StatusBadRequest, "oldText not found")
+			return
+		}
+	}
+
+	// Union bbox.
+	bbox := image.Rect(targets[0].X0, targets[0].Y0, targets[0].X1, targets[0].Y1)
+	for _, wd := range targets[1:] {
+		bbox = bbox.Union(image.Rect(wd.X0, wd.Y0, wd.X1, wd.Y1))
+	}
+	bbox = bbox.Intersect(image.Rect(0, 0, 1<<30, 1<<30))
+
+	// Load current page image.
+	f, err := os.Open(page.ImagePath)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "open image failed")
+		return
+	}
+	img, _, err := image.Decode(f)
+	f.Close()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "decode image failed")
+		return
+	}
+	rgba := edit.ToRGBA(img)
+
+	// Sample colors before erase.
+	bg := edit.SampleBackground(rgba, bbox, 6)
+	tc := edit.SampleTextColor(rgba, bbox, bg)
+
+	// Font path override (validated).
+	fontPath := h.FontPath
+	if req.FontPath != "" {
+		if _, err := os.Stat(req.FontPath); err != nil {
+			writeError(w, http.StatusBadRequest, "font path not found")
+			return
+		}
+		fontPath = req.FontPath
+	}
+	// Color override.
+	if req.Color != "" {
+		c, err := edit.ParseColor(req.Color)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid color")
+			return
+		}
+		tc = c
+	}
+
+	// Font size.
+	size := 0.0
+	if req.FontSize != nil {
+		size = *req.FontSize
+	}
+	if size > 0 {
+		// clamp to box height/width to avoid clipping
+		face, err := gg.LoadFontFace(fontPath, size)
+		if err == nil {
+			hpx := float64(face.Metrics().Height) / 64.0
+			if hpx > float64(bbox.Dy()) && hpx > 0 {
+				size = size * float64(bbox.Dy()) / hpx
+			}
+			wpx := float64(font.MeasureString(face, req.NewText) >> 6)
+			if wpx > float64(bbox.Dx()) && wpx > 0 {
+				size = size * float64(bbox.Dx()) / wpx
+			}
+		}
+	}
+
+	// Erase + render.
+	edit.Erase(rgba, bbox, 4, bg)
+	if err := edit.RenderText(rgba, bbox, req.NewText, fontPath, size, tc); err != nil {
+		writeError(w, http.StatusInternalServerError, "render failed")
+		return
+	}
+
+	// Persist edited image.
+	editedPath := filepath.Join(doc.Dir, "edited_p"+strconv.Itoa(req.Page)+".png")
+	out, err := os.Create(editedPath)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "create edited image failed")
+		return
+	}
+	if err := png.Encode(out, rgba); err != nil {
+		out.Close()
+		writeError(w, http.StatusInternalServerError, "encode edited image failed")
+		return
+	}
+	out.Close()
+	page.ImagePath = editedPath
+
+	// Return preview bytes.
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, rgba); err != nil {
+		writeError(w, http.StatusInternalServerError, "encode preview failed")
+		return
+	}
+	w.Header().Set("Content-Type", "image/png")
+	w.Write(buf.Bytes())
+}
+
+// Result is the exported handler for GET /api/documents/{id}/result.pdf.
+func (h *Handler) Result(w http.ResponseWriter, r *http.Request) { h.result(w, r) }
+
+func (h *Handler) result(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	doc, ok := h.Store.Get(id)
+	if !ok {
+		writeError(w, http.StatusNotFound, "document not found")
+		return
+	}
+	doc.mu.Lock()
+	paths := make([]string, len(doc.Pages))
+	for i, p := range doc.Pages {
+		paths[i] = p.ImagePath
+	}
+	doc.mu.Unlock()
+
+	out := filepath.Join(doc.Dir, "result.pdf")
+	if err := pdfio.BuildPDF(r.Context(), paths, out); err != nil {
+		writeError(w, http.StatusInternalServerError, "rebuild failed")
+		return
+	}
+	w.Header().Set("Content-Type", "application/pdf")
+	http.ServeFile(w, r, out)
 }
 

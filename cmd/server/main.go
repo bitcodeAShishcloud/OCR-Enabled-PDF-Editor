@@ -105,12 +105,15 @@ func main() {
 	h := &api.Handler{
 		Store:          store,
 		Engine:         engine,
+		FontPath:       cfg.FontPath,
 		MaxUploadBytes: api.DefaultMaxUploadBytes,
 		MaxPages:       api.DefaultMaxPages,
 	}
 	mux.HandleFunc("POST /api/documents", h.Upload)
 	mux.HandleFunc("GET /api/documents/{id}/pages/{n}", h.GetPage)
 	mux.HandleFunc("DELETE /api/documents/{id}", h.DeleteDoc)
+	mux.HandleFunc("POST /api/documents/{id}/edits", h.Edit)
+	mux.HandleFunc("GET /api/documents/{id}/result.pdf", h.Result)
 
 	srv := &http.Server{
 		Addr:              fmt.Sprintf("0.0.0.0:%d", cfg.Port),
