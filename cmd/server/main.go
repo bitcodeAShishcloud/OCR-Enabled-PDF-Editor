@@ -23,13 +23,17 @@ type Config struct {
 	TesseractPath  string
 	FontPath       string
 	OCRBackend     string
+	MaxUploadBytes int64
+	MaxPages       int
 }
 
 func loadConfig() (Config, error) {
 	cfg := Config{
-		TesseractPath: `C:\Program Files\Tesseract-OCR\tesseract.exe`,
-		FontPath:      `C:\Windows\Fonts\arial.ttf`,
-		OCRBackend:    "cli",
+		TesseractPath:  `C:\Program Files\Tesseract-OCR\tesseract.exe`,
+		FontPath:       `C:\Windows\Fonts\arial.ttf`,
+		OCRBackend:     "cli",
+		MaxUploadBytes: api.DefaultMaxUploadBytes,
+		MaxPages:       api.DefaultMaxPages,
 	}
 
 	if v := os.Getenv("TESSERACT_PATH"); v != "" {
@@ -51,6 +55,21 @@ func loadConfig() (Config, error) {
 		return Config{}, fmt.Errorf("invalid PORT %q: must be an integer in 1..65535", portStr)
 	}
 	cfg.Port = p
+
+	if v := os.Getenv("MAX_UPLOAD_BYTES"); v != "" {
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || n <= 0 {
+			return Config{}, fmt.Errorf("invalid MAX_UPLOAD_BYTES %q", v)
+		}
+		cfg.MaxUploadBytes = n
+	}
+	if v := os.Getenv("MAX_PAGES"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n <= 0 {
+			return Config{}, fmt.Errorf("invalid MAX_PAGES %q", v)
+		}
+		cfg.MaxPages = n
+	}
 
 	switch cfg.OCRBackend {
 	case "cli", "gosseract":
@@ -111,8 +130,8 @@ func main() {
 		Store:          store,
 		Engine:         engine,
 		FontPath:       cfg.FontPath,
-		MaxUploadBytes: api.DefaultMaxUploadBytes,
-		MaxPages:       api.DefaultMaxPages,
+		MaxUploadBytes: cfg.MaxUploadBytes,
+		MaxPages:       cfg.MaxPages,
 	}
 	mux.HandleFunc("POST /api/documents", h.Upload)
 	mux.HandleFunc("GET /api/documents/{id}/pages/{n}", h.GetPage)

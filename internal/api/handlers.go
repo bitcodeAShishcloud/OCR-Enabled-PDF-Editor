@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	DefaultMaxUploadBytes = 50 * 1024 * 1024
-	DefaultMaxPages       = 50
+	DefaultMaxUploadBytes = 200 * 1024 * 1024
+	DefaultMaxPages       = 500
 )
 
 type Handler struct {
